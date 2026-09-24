@@ -23,13 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Test Icon Generation
+      - name: Run Unit Tests
         run: |
-          python generate_icon.py
-
-      - name: Test Shortcut Creation Script
-        run: |
-          python create_desktop_shortcut.py
+          python -m unittest discover tests
 
       - name: Test Hibernation Script (Dry-Run Mode)
         run: |

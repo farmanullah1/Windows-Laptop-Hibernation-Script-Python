@@ -14,27 +14,21 @@ if /i not "%CONFIRM%"=="Y" (
 )
 
 echo.
-echo [1/3] Removing Desktop shortcut...
-set "DESKTOP_LNK=%USERPROFILE%\Desktop\Hibernate.lnk"
-if exist "%DESKTOP_LNK%" (
-    del /f /q "%DESKTOP_LNK%"
-    echo       Removed %DESKTOP_LNK%
-) else (
-    echo       Desktop shortcut not found.
+echo [1/2] Invoking Python shortcut uninstaller...
+where python >nul 2>nul
+if %ERRORLEVEL% equ 0 (
+    python "%~dp0create_desktop_shortcut.py" --remove
 )
 
 echo.
-echo [2/3] Removing Start Menu shortcut...
-set "START_LNK=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Hibernate.lnk"
-if exist "%START_LNK%" (
-    del /f /q "%START_LNK%"
-    echo       Removed %START_LNK%
-) else (
-    echo       Start Menu shortcut not found.
+echo [2/2] Verifying and cleaning any remaining shortcuts...
+if exist "%USERPROFILE%\Desktop\Hibernate.lnk" (
+    del /f /q "%USERPROFILE%\Desktop\Hibernate.lnk"
+)
+if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Hibernate.lnk" (
+    del /f /q "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Hibernate.lnk"
 )
 
-echo.
-echo [3/3] Cleanup completed.
 echo.
 echo ==============================================================
 echo   [SUCCESS] Hibernate shortcuts have been cleanly removed!

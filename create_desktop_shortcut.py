@@ -8,6 +8,7 @@ high-resolution `hibernate.ico` icon, and assigns the global hotkey (Ctrl+Alt+H)
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
@@ -225,6 +226,30 @@ def create_all_shortcuts(force_recreate: bool = True) -> List[Path]:
     return created
 
 
+def remove_all_shortcuts() -> List[Path]:
+    """Removes shortcuts from both the Desktop and Start Menu."""
+    desktop_dir = get_desktop_dir()
+    start_menu_dir = get_start_menu_programs_dir()
+    user_desktop = Path(os.environ.get("USERPROFILE", "~")).expanduser() / "Desktop"
+
+    potential_targets = {
+        desktop_dir / "Hibernate.lnk",
+        user_desktop / "Hibernate.lnk",
+        start_menu_dir / "Hibernate.lnk",
+    }
+
+    removed: List[Path] = []
+    for path in potential_targets:
+        if path.is_file():
+            try:
+                path.unlink()
+                logger.info("Removed shortcut: %s", path)
+                removed.append(path)
+            except Exception as exc:
+                logger.warning("Could not delete %s: %s", path, exc)
+    return removed
+
+
 def create_shortcut() -> Path:
     """Backwards-compatible helper returning the primary Desktop shortcut path."""
     shortcuts = create_all_shortcuts()
@@ -232,11 +257,29 @@ def create_shortcut() -> Path:
 
 
 if __name__ == "__main__":
-    try:
-        paths = create_all_shortcuts()
-        print("\n[SUCCESS] Shortcuts created:")
-        for p in paths:
-            print(f"  - {p}")
-    except Exception as e:
-        print(f"\n[ERROR] Failed to create shortcuts: {e}", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Create or remove Windows Hibernate shortcuts.")
+    parser.add_argument(
+        "--remove",
+        "--uninstall",
+        action="store_true",
+        help="Remove Desktop and Start Menu Hibernate shortcuts.",
+    )
+    args = parser.parse_args()
+
+    if args.remove:
+        removed_paths = remove_all_shortcuts()
+        if removed_paths:
+            print("\n[SUCCESS] Removed shortcuts:")
+            for p in removed_paths:
+                print(f"  - {p}")
+        else:
+            print("\n[INFO] No shortcuts found to remove.")
+    else:
+        try:
+            paths = create_all_shortcuts()
+            print("\n[SUCCESS] Shortcuts created:")
+            for p in paths:
+                print(f"  - {p}")
+        except Exception as e:
+            print(f"\n[ERROR] Failed to create shortcuts: {e}", file=sys.stderr)
+            sys.exit(1)

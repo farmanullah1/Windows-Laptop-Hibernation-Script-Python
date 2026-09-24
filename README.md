@@ -126,6 +126,20 @@ python hibernate.py --monitor
   python hibernate.py --create-shortcut
   ```
 
+- **Remove shortcuts cleanly**:
+  ```powershell
+  python create_desktop_shortcut.py --remove
+  ```
+
+---
+
+## Testing
+
+Run the automated test suite locally:
+```powershell
+python -m unittest discover tests
+```
+
 ---
 
 ## System Requirements
