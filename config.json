@@ -3,5 +3,11 @@
   "countdown_seconds": 5,
   "force_kill_apps": false,
   "enable_hotkey": true,
-  "hotkey": "Ctrl+Alt+H"
+  "hotkey": "Ctrl+Alt+H",
+  "play_audio_chime": true,
+  "create_start_menu_shortcut": true,
+  "battery_monitor": {
+    "threshold_percent": 5,
+    "check_interval_seconds": 60
+  }
 }

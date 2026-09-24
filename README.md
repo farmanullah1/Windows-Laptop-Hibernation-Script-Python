@@ -1,15 +1,23 @@
 # Windows-Laptop-Hibernation-Script-Python
 
-A reliable, production-ready Python utility to safely hibernate your Windows laptop with a single click from your Desktop or a global keyboard shortcut.
+[![CI](https://github.com/farmanullah1/Windows-Laptop-Hibernation-Script-Python/actions/workflows/ci.yml/badge.svg)](https://github.com/farmanullah1/Windows-Laptop-Hibernation-Script-Python/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6.svg)](https://microsoft.com/windows)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A reliable, production-ready Python utility to safely hibernate your Windows laptop with a single click from your Desktop, Windows Search, global keyboard shortcut, or automatic low-battery monitor.
 
 ---
 
 ## Features
 
-- **One-Click Desktop Icon**: A dedicated `Hibernate.lnk` shortcut on your Windows Desktop with a custom modern dark/cyan power & moon icon ([`hibernate.ico`](hibernate.ico)).
+- **One-Click Desktop Icon**: A dedicated `Hibernate.lnk` shortcut on your Desktop with a custom modern dark/cyan power & moon icon ([`hibernate.ico`](hibernate.ico)).
+- **Windows Search Integration**: Installs into Start Menu Programs so pressing `Win` and typing `Hibernate` immediately finds and runs the script.
 - **Global Hotkey (`Ctrl + Alt + H`)**: Hibernate from anywhere without needing to minimize windows or click the desktop.
 - **Accidental Click Protection**: Displays a sleek 5-second countdown dialog with a **Cancel** button (`Esc`) or immediate **Hibernate Now** (`Enter`) so you never accidentally interrupt your work.
-- **Customizable Preferences**: Configure countdown duration, confirmation prompt, force shutdown, and hotkey in a clean [`config.json`](config.json).
+- **Audio Feedback Chime**: Plays a subtle Windows notification sound when the countdown begins so you have acoustic confirmation when triggering via hotkey.
+- **Smart Battery Monitor Daemon (`--monitor`)**: Optional background watcher that automatically and safely hibernates your laptop when the battery hits a critical threshold (e.g. 5%) while unplugged, preventing sudden power loss and unsaved data corruption.
+- **Customizable Preferences**: Configure countdown duration, confirmation prompt, force shutdown, audio chime, and hotkey in a clean [`config.json`](config.json).
 - **Silent Background Execution**: Runs via `pythonw.exe`, eliminating unsightly flashing black command prompt windows when clicked.
 - **Reliable Windows Power Management**: Uses native Windows `shutdown.exe /h` designed for both modern standby (S0 Low Power Idle) and standard S3/S4 sleep architectures, with automated fallback to the `powrprof.dll` Windows API.
 - **Production-Grade Rotating Logs**: Automatically rotates logs in [`hibernate.log`](hibernate.log) (max 1MB, 3 backups) to prevent unbounded disk growth.
@@ -18,13 +26,18 @@ A reliable, production-ready Python utility to safely hibernate your Windows lap
 
 ---
 
-## 1-Click Installation
+## 1-Click Installation & Setup
 
 If you cloned this repository, simply double-click:
 ```text
 setup.bat
 ```
-This automatically verifies Python, installs dependencies from `requirements.txt`, creates the custom icon, and places the `Hibernate.lnk` shortcut on your Desktop with the `Ctrl + Alt + H` hotkey configured.
+This automatically verifies Python, installs dependencies from `requirements.txt`, creates the custom icon, and places the `Hibernate.lnk` shortcut on your **Desktop** and **Start Menu** with the `Ctrl + Alt + H` hotkey configured.
+
+To remove shortcuts at any time, run:
+```text
+uninstall.bat
+```
 
 ---
 
@@ -38,7 +51,13 @@ You can customize the script's behavior by editing [`config.json`](config.json):
   "countdown_seconds": 5,
   "force_kill_apps": false,
   "enable_hotkey": true,
-  "hotkey": "Ctrl+Alt+H"
+  "hotkey": "Ctrl+Alt+H",
+  "play_audio_chime": true,
+  "create_start_menu_shortcut": true,
+  "battery_monitor": {
+    "threshold_percent": 5,
+    "check_interval_seconds": 60
+  }
 }
 ```
 
@@ -49,17 +68,23 @@ You can customize the script's behavior by editing [`config.json`](config.json):
 | `force_kill_apps` | `false` | Pass `/f` flag to force close non-responsive apps. |
 | `enable_hotkey` | `true` | Enable global keyboard shortcut on the desktop shortcut. |
 | `hotkey` | `"Ctrl+Alt+H"` | Key combination to trigger hibernation from anywhere in Windows. |
+| `play_audio_chime` | `true` | Play system notification sound when hibernation is initiated. |
+| `create_start_menu_shortcut` | `true` | Create Start Menu shortcut for Windows Search indexing. |
+| `battery_monitor.threshold_percent` | `5` | Battery percentage to auto-hibernate when unplugged. |
+| `battery_monitor.check_interval_seconds` | `60` | Frequency in seconds to check battery levels. |
 
 ---
 
 ## Files
 
 - [`hibernate.py`](hibernate.py): The main script that validates power states, displays the countdown dialog, and executes the hibernation command.
-- [`create_desktop_shortcut.py`](create_desktop_shortcut.py): Generates the multi-resolution icon, reads [`config.json`](config.json), and creates the desktop shortcut with hotkey support.
+- [`create_desktop_shortcut.py`](create_desktop_shortcut.py): Generates the multi-resolution icon, reads [`config.json`](config.json), and creates the Desktop and Start Menu shortcuts.
 - [`generate_icon.py`](generate_icon.py): Generates [`hibernate.ico`](hibernate.ico) (resolutions 256×256 down to 16×16).
 - [`setup.bat`](setup.bat): 1-click Windows setup batch installer.
-- [`requirements.txt`](requirements.txt): Python dependencies (`Pillow`).
+- [`uninstall.bat`](uninstall.bat): 1-click clean uninstaller.
+- [`requirements.txt`](requirements.txt): Python dependencies (`Pillow`, `psutil`).
 - [`config.json`](config.json): Configuration file.
+- [`LICENSE`](LICENSE): MIT License.
 - [`hibernate.ico`](hibernate.ico): The multi-resolution Windows icon used for the Desktop shortcut.
 - [`hibernate.log`](hibernate.log): Auto-rotating execution and diagnostics log.
 
@@ -67,12 +92,19 @@ You can customize the script's behavior by editing [`config.json`](config.json):
 
 ## How to Use
 
-### 1. From Desktop or Hotkey
+### 1. From Desktop, Windows Search, or Hotkey
 - **Double-click** the **Hibernate** icon on your Desktop.
-- Or press **`Ctrl + Alt + H`** from anywhere.
-- A 5-second countdown will appear. Click **Cancel** (or press `Esc`) if triggered by accident, or let the timer reach zero to hibernate.
+- **Search**: Press the `Windows Key`, type `Hibernate`, and press `Enter`.
+- **Keyboard Shortcut**: Press **`Ctrl + Alt + H`** from anywhere.
+- A 5-second countdown will appear with a chime. Click **Cancel** (or press `Esc`) if triggered by accident, or let the timer reach zero to hibernate.
 
-### 2. From Command Line
+### 2. Low-Battery Daemon (Automatic Protection)
+To monitor battery in the background and auto-hibernate when below 5%:
+```powershell
+python hibernate.py --monitor
+```
+
+### 3. From Command Line
 
 - **Test prerequisites safely without hibernating**:
   ```powershell
@@ -89,7 +121,7 @@ You can customize the script's behavior by editing [`config.json`](config.json):
   python hibernate.py --force
   ```
 
-- **Recreate or update Desktop shortcut**:
+- **Recreate or update shortcuts**:
   ```powershell
   python hibernate.py --create-shortcut
   ```
@@ -105,3 +137,9 @@ You can customize the script's behavior by editing [`config.json`](config.json):
   ```powershell
   powercfg -h on
   ```
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
