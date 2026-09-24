@@ -2,12 +2,14 @@
 Automated Desktop Shortcut Creator for Hibernate Script.
 
 Creates a Windows desktop shortcut (.lnk) configured to run `hibernate.py`
-using `pythonw.exe` (silent execution without a flashing console window)
-and links it to the custom high-resolution `hibernate.ico` icon.
+using `pythonw.exe` (silent execution without a flashing console window),
+links it to the custom high-resolution `hibernate.ico` icon, and assigns
+an optional global hotkey (e.g. Ctrl+Alt+H).
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
@@ -22,6 +24,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger("CreateShortcut")
 
+PROJECT_DIR = Path(__file__).resolve().parent
+CONFIG_FILE = PROJECT_DIR / "config.json"
+
+
+def load_config() -> dict:
+    """Loads configuration options from config.json, returning sensible defaults."""
+    default_config = {
+        "confirm_before_hibernate": True,
+        "countdown_seconds": 5,
+        "force_kill_apps": False,
+        "enable_hotkey": True,
+        "hotkey": "Ctrl+Alt+H",
+    }
+    if CONFIG_FILE.is_file():
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                default_config.update(loaded)
+        except Exception as exc:
+            logger.warning("Could not read config.json (%s), using defaults.", exc)
+    return default_config
+
 
 def get_desktop_dir() -> Path:
     """
@@ -29,7 +53,6 @@ def get_desktop_dir() -> Path:
     OneDrive folder redirection and customized user profiles.
     """
     try:
-        # PowerShell query for the exact Shell Desktop folder path
         cmd = [
             "powershell",
             "-NoProfile",
@@ -48,7 +71,6 @@ def get_desktop_dir() -> Path:
             exc,
         )
 
-    # Fallback to standard user desktop
     fallback = Path(os.environ.get("USERPROFILE", "~")).expanduser() / "Desktop"
     fallback.mkdir(parents=True, exist_ok=True)
     return fallback
@@ -101,19 +123,20 @@ def create_shortcut(
     Returns:
         Path to the created desktop shortcut.
     """
-    project_dir = Path(__file__).resolve().parent
-    script_path = project_dir / "hibernate.py"
-    icon_path = ensure_icon_exists(project_dir / "hibernate.ico")
+    config = load_config()
+    script_path = PROJECT_DIR / "hibernate.py"
+    icon_path = ensure_icon_exists(PROJECT_DIR / "hibernate.ico")
     pythonw_path = find_pythonw_executable()
     desktop_dir = get_desktop_dir()
     shortcut_path = desktop_dir / shortcut_name
+
+    hotkey_str = config.get("hotkey", "Ctrl+Alt+H") if config.get("enable_hotkey", True) else ""
 
     if shortcut_path.exists() and not force_recreate:
         logger.info("Shortcut already exists at %s", shortcut_path)
         return shortcut_path
 
     # Build PowerShell script to create shortcut via WScript.Shell COM object
-    # Using parameterized script to avoid injection or quote escaping errors
     ps_script = f"""
 $wsh = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut(@'
@@ -126,12 +149,15 @@ $shortcut.Arguments = '"' + @'
 {script_path}
 '@ + '"'
 $shortcut.WorkingDirectory = @'
-{project_dir}
+{PROJECT_DIR}
 '@
 $shortcut.IconLocation = @'
 {icon_path}
 '@ + ',0'
 $shortcut.Description = 'Hibernate Laptop - Save state and power down'
+if ('{hotkey_str}') {{
+    $shortcut.Hotkey = '{hotkey_str}'
+}}
 $shortcut.Save()
 """
 
@@ -151,6 +177,8 @@ $shortcut.Save()
     logger.info("  Target: %s", pythonw_path)
     logger.info("  Arguments: \"%s\"", script_path)
     logger.info("  Icon: %s", icon_path)
+    if hotkey_str:
+        logger.info("  Global Hotkey: %s", hotkey_str)
 
     return shortcut_path
 

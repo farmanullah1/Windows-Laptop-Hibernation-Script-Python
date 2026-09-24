@@ -1,0 +1,7 @@
+{
+  "confirm_before_hibernate": true,
+  "countdown_seconds": 5,
+  "force_kill_apps": false,
+  "enable_hotkey": true,
+  "hotkey": "Ctrl+Alt+H"
+}
